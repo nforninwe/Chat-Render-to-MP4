@@ -1,0 +1,29 @@
+{
+  "chat": [
+    {
+      "sender": "Alice",
+      "message": "Hey! How are you doing today?",
+      "timestamp": "2024-04-27T09:15:30Z"
+    },
+    {
+      "sender": "Bob",
+      "message": "Hi Alice! I'm doing well, thanks for asking. How about you?",
+      "timestamp": "2024-04-27T09:16:05Z"
+    },
+    {
+      "sender": "Alice",
+      "message": "I'm good too! Are you free this weekend?",
+      "timestamp": "2024-04-27T09:17:10Z"
+    },
+    {
+      "sender": "Bob",
+      "message": "Yes, I am. Do you want to catch up?",
+      "timestamp": "2024-04-27T09:18:20Z"
+    },
+    {
+      "sender": "Alice",
+      "message": "Absolutely! Let's plan something.",
+      "timestamp": "2024-04-27T09:19:45Z"
+    }
+  ]
+}
