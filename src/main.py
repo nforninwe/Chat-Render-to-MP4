@@ -3,8 +3,7 @@ from datetime import datetime
 
 def parse_and_display_chat(json_data):
     """
-    Parses chat data from a JSON string and displays it in a
-    human-readable format.
+    Parses chat data from a JSON string 
 
     Args:
         json_data (str): A string containing the chat data in JSON format.
