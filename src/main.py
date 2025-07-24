@@ -1,47 +1,80 @@
+from PIL import Image, ImageDraw, ImageFont
+import os
+import subprocess
 import json
-from datetime import datetime
 
-def parse_and_display_chat(json_data):
-    """
-    Parses chat data from a JSON string 
+# Constants
+WIDTH, HEIGHT = 400, 600
+BACKGROUND_COLOR = (24, 24, 24)
+USER_COLOR = (0, 150, 255)
+MESSAGE_COLOR = (255, 255, 255)
+TIMESTAMP_COLOR = (150, 150, 150)
+FONT_SIZE = 20
+LINE_HEIGHT = 35
+MARGIN = 10
+OUTPUT_DIR = "frames"
+VIDEO_OUTPUT = "chat_video.mp4"
+CHAT_FILE = "chat_data.json"
 
-    Args:
-        json_data (str): A string containing the chat data in JSON format.
-    """
-    try:
-        # Load the JSON from string
-        data = json.loads(json_data)
-        chat_messages = data.get("chat", [])
+# Load chat data from file
+with open(CHAT_FILE, 'r', encoding='utf-8') as f:
+    chat_data = json.load(f)
 
-        if not chat_messages:
-            print("No chat messages found.")
-            return
+# Load a font
+try:
+    font = ImageFont.truetype("arial.ttf", FONT_SIZE)
+except IOError:
+    font = ImageFont.load_default()
 
-        print("--- Chat History ---")
-        print("-" * 20)
+# Ensure output folder exists
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-        # Iterate through each message in the list
-        for message in chat_messages:
-            sender = message.get("sender", "Unknown Sender")
-            text = message.get("message", "No message content.")
-            timestamp_str = message.get("timestamp", "")
+# Function to draw a single message
+def draw_message(draw, username, message, timestamp, position):
+    user_text = f"{username}: "
+    ts_text = f"[{timestamp[11:16]}]"  # Format: HH:MM
+    user_text_width = draw.textlength(user_text, font=font)
+    draw.text((MARGIN, position), ts_text, font=font, fill=TIMESTAMP_COLOR)
+    draw.text((MARGIN + 70, position), user_text, font=font, fill=USER_COLOR)
+    draw.text((MARGIN + 70 + user_text_width, position), message, font=font, fill=MESSAGE_COLOR)
 
-            if timestamp_str:
-                dt_object = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-                formatted_time = dt_object.strftime('%Y-%m-%d %I:%M %p')
-            else:
-                formatted_time = "No timestamp"
+# Frame rendering loop
+rendered_messages = []
+for i, chat in enumerate(chat_data["chat"]):
+    rendered_messages.append((chat["sender"], chat["message"], chat["timestamp"]))
 
-            print(f"[{formatted_time}] {sender}: {text}")
+    # Create blank image
+    image = Image.new('RGB', (WIDTH, HEIGHT), BACKGROUND_COLOR)
+    draw = ImageDraw.Draw(image)
 
+    # Draw all messages so far
+    y = MARGIN
+    for sender, msg, ts in rendered_messages:
+        draw_message(draw, sender, msg, ts, y)
+        y += LINE_HEIGHT
+        if y > HEIGHT - MARGIN:
+            break  # stop drawing when out of space
 
-    except json.JSONDecodeError:
-        print("Error: Invalid JSON data provided.")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    # Save frame to disk
+    filename = os.path.join(OUTPUT_DIR, f"frame_{i:03d}.png")
+    image.save(filename)
+    print(f"Saved {filename}")
 
-if __name__ == "__main__":
-    # Read the JSON file as a string
-    with open('data.json', 'r', encoding='utf-8') as file:
-        json_str = file.read()
-    parse_and_display_chat(json_str)
+# Run FFmpeg to create the video
+print("Rendering video with FFmpeg...")
+ffmpeg_cmd = [
+    "ffmpeg",
+    "-y",
+    "-framerate", "1",
+    "-i", os.path.join(OUTPUT_DIR, "frame_%03d.png"),
+    "-c:v", "libx264",
+    "-r", "30",
+    "-pix_fmt", "yuv420p",
+    VIDEO_OUTPUT
+]
+
+try:
+    subprocess.run(ffmpeg_cmd, check=True)
+    print(f"Video rendered to {VIDEO_OUTPUT}")
+except subprocess.CalledProcessError as e:
+    print("FFmpeg failed:", e)
